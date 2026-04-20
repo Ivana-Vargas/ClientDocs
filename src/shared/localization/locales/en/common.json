@@ -1,1 +1,61 @@
-{}
+{
+  "common": {
+    "brand": "ClientDocs",
+    "language": "Language",
+    "english": "English",
+    "spanish": "Spanish",
+    "close": "Close",
+    "languageUpdated": "Language updated",
+    "languageError": "Could not update language"
+  },
+  "login": {
+    "title": "Sign In",
+    "subtitle": "Secure access for admin and manager",
+    "emailLabel": "E-Mail",
+    "passwordLabel": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "submit": "Sign In",
+    "submitting": "Signing In...",
+    "validationTitle": "Validation error",
+    "validationDescription": "Enter your e-mail and password to continue",
+    "missingEmail": "You must enter e-mail.",
+    "missingPassword": "You must enter password.",
+    "missingEmailAndPassword": "You must enter e-mail and password.",
+    "inlineInvalidCredentials": "Incorrect password",
+    "successTitle": "Session started",
+    "successDescription": "Access granted",
+    "serviceErrorTitle": "Service error",
+    "serviceUnavailable": "The service is temporarily unavailable. Please try again in a moment.",
+    "unexpectedError": "Unexpected error while trying to sign in",
+    "error401": "Error 401: Invalid credentials",
+    "error401Description": "The e-mail or password is incorrect.",
+    "error400": "Error 400: Invalid request",
+    "error400Description": "Enter e-mail and password to sign in.",
+    "error500": "Error 500: Internal server error",
+    "error500Description": "A server problem occurred. Please try again."
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Secure workspace loaded for",
+    "clientsTitle": "Clients",
+    "clientsDescription": "Client records feature is the next delivery step.",
+    "documentsTitle": "Documents",
+    "documentsDescription": "PDF document management will be integrated next.",
+    "paymentsTitle": "Payments",
+    "paymentsDescription": "Ledger tracking and debt controls are planned in upcoming steps."
+  },
+  "placeholders": {
+    "clientsTitle": "Clients",
+    "clientsDescription": "Clients module placeholder ready for implementation.",
+    "documentsTitle": "Documents",
+    "documentsDescription": "Documents module placeholder ready for implementation.",
+    "paymentsTitle": "Payments",
+    "paymentsDescription": "Payments module placeholder ready for implementation."
+  },
+  "session": {
+    "logout": "Log Out",
+    "logoutSuccess": "Session closed",
+    "logoutError": "Could not log out"
+  }
+}

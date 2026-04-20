@@ -29,11 +29,14 @@ describe("POST /api/auth/login", () => {
 
     const response = await POST(request)
     const payload = await response.json()
+    const setCookieHeader = response.headers.get("set-cookie") ?? ""
 
     expect(response.status).toBe(200)
-    expect(payload.user.email).toBe("admin@test.local")
-    expect(payload.accessToken).toBeTypeOf("string")
-    expect(response.headers.get("set-cookie")).toContain("clientdocs_refresh_token=")
+    expect(payload.ok).toBe(true)
+    expect(payload.data.user.email).toBe("admin@test.local")
+    expect(payload.data.accessToken).toBeTypeOf("string")
+    expect(setCookieHeader).toContain("clientdocs_refresh_token=")
+    expect(setCookieHeader).toContain("clientdocs_access_token=")
   })
 
   it("returns 401 for invalid credentials", async () => {
@@ -50,6 +53,26 @@ describe("POST /api/auth/login", () => {
     const payload = await response.json()
 
     expect(response.status).toBe(401)
-    expect(payload.error).toBe("invalid_credentials")
+    expect(payload.ok).toBe(false)
+    expect(payload.error.code).toBe("invalid_credentials")
+  })
+
+  it("returns 400 for missing payload fields", async () => {
+    const request = new Request("http://localhost:3000/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({
+        email: "",
+        password: "",
+      }),
+      headers: { "content-type": "application/json" },
+    })
+
+    const response = await POST(request)
+    const payload = await response.json()
+
+    expect(response.status).toBe(400)
+    expect(payload.ok).toBe(false)
+    expect(payload.error.code).toBe("invalid_request")
+    expect(Array.isArray(payload.error.details)).toBe(true)
   })
 })

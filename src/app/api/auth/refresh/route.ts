@@ -1,43 +1,67 @@
-import { NextResponse } from "next/server"
-
 import { refreshAccessToken } from "@server/features/auth/application/auth-service"
 import {
+  setAccessTokenCookie,
   getRefreshTokenCookieName,
   setRefreshTokenCookie,
 } from "@server/features/auth/presentation/auth-cookies"
+import { getCookieValue } from "@server/shared/security/cookie-utils"
+import { AppError } from "@server/shared/errors/app-error"
+import { errorResponse, successResponse } from "@server/shared/errors/api-response"
+import { HTTP_STATUS } from "@server/shared/errors/http-status"
+import { logHttpRequestResult } from "@server/shared/observability/http-console-logger"
 
 export async function POST(request: Request) {
-  const cookieStore = request.headers.get("cookie") ?? ""
-  const refreshTokenPair = cookieStore
-    .split(";")
-    .map((item) => item.trim())
-    .find((item) => item.startsWith(`${getRefreshTokenCookieName()}=`))
+  const startedAt = Date.now()
+  const path = new URL(request.url).pathname
 
-  if (!refreshTokenPair) {
-    return NextResponse.json({ error: "missing_refresh_token" }, { status: 401 })
+  try {
+    const cookieHeader = request.headers.get("cookie") ?? ""
+    const refreshToken = getCookieValue(cookieHeader, getRefreshTokenCookieName())
+
+    if (!refreshToken) {
+      throw new AppError({
+        code: "missing_refresh_token",
+        status: HTTP_STATUS.unauthorized,
+        message: "missing refresh token",
+      })
+    }
+
+    const result = refreshAccessToken(refreshToken)
+
+    if (!result) {
+      throw new AppError({
+        code: "invalid_refresh_token",
+        status: HTTP_STATUS.unauthorized,
+        message: "invalid or expired refresh token",
+      })
+    }
+
+    const response = successResponse(
+      {
+        accessToken: result.accessToken,
+        user: result.user,
+      },
+      HTTP_STATUS.ok,
+    )
+
+    setAccessTokenCookie(response, result.accessToken)
+    setRefreshTokenCookie(response, result.refreshToken)
+    logHttpRequestResult({
+      method: request.method,
+      path,
+      status: response.status,
+      durationMs: Date.now() - startedAt,
+    })
+
+    return response
+  } catch (error) {
+    const response = errorResponse(error)
+    logHttpRequestResult({
+      method: request.method,
+      path,
+      status: response.status,
+      durationMs: Date.now() - startedAt,
+    })
+    return response
   }
-
-  const refreshToken = decodeURIComponent(refreshTokenPair.split("=")[1] ?? "")
-
-  if (!refreshToken) {
-    return NextResponse.json({ error: "missing_refresh_token" }, { status: 401 })
-  }
-
-  const result = refreshAccessToken(refreshToken)
-
-  if (!result) {
-    return NextResponse.json({ error: "invalid_refresh_token" }, { status: 401 })
-  }
-
-  const response = NextResponse.json(
-    {
-      accessToken: result.accessToken,
-      user: result.user,
-    },
-    { status: 200 },
-  )
-
-  setRefreshTokenCookie(response, result.refreshToken)
-
-  return response
 }

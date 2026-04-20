@@ -18,6 +18,31 @@ type TokenPair = {
   refreshExpiresAt: Date
 }
 
+function parseTtlToSeconds(ttl: string) {
+  const match = ttl.match(/^(\d+)([smhd])$/)
+
+  if (!match) {
+    return 60 * 60 * 24 * 14
+  }
+
+  const amount = Number(match[1])
+  const unit = match[2]
+
+  if (unit === "s") {
+    return amount
+  }
+
+  if (unit === "m") {
+    return amount * 60
+  }
+
+  if (unit === "h") {
+    return amount * 60 * 60
+  }
+
+  return amount * 60 * 60 * 24
+}
+
 function randomJti() {
   return crypto.randomUUID()
 }
@@ -57,7 +82,7 @@ export function issueTokenPair(user: AuthUser): TokenPair {
     config.refreshTtl as SignOptions["expiresIn"],
   )
 
-  const refreshExpiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 14)
+  const refreshExpiresAt = new Date(Date.now() + parseTtlToSeconds(config.refreshTtl) * 1000)
 
   return {
     accessToken,

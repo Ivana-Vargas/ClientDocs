@@ -8,6 +8,18 @@ import { POST as logoutPost } from "@app/api/auth/logout/route"
 
 import { POST } from "./route"
 
+function extractCookieValue(setCookieHeader: string, cookieName: string) {
+  const match = setCookieHeader.match(new RegExp(`${cookieName}=([^;,]+)`))
+  return match?.[1] ?? ""
+}
+
+function buildCookieHeader(setCookieHeader: string) {
+  const accessToken = extractCookieValue(setCookieHeader, "clientdocs_access_token")
+  const refreshToken = extractCookieValue(setCookieHeader, "clientdocs_refresh_token")
+
+  return `clientdocs_access_token=${accessToken}; clientdocs_refresh_token=${refreshToken}`
+}
+
 describe("POST /api/auth/refresh", () => {
   beforeEach(() => {
     process.env.ADMIN_EMAIL = "admin@test.local"
@@ -31,21 +43,23 @@ describe("POST /api/auth/refresh", () => {
     })
 
     const loginResponse = await loginPost(loginRequest)
-    const refreshCookie = loginResponse.headers.get("set-cookie")
+    const setCookieHeader = loginResponse.headers.get("set-cookie")
+    const cookieHeader = buildCookieHeader(setCookieHeader ?? "")
 
-    expect(refreshCookie).toBeTruthy()
+    expect(setCookieHeader).toBeTruthy()
 
     const refreshRequest = new Request("http://localhost:3000/api/auth/refresh", {
       method: "POST",
-      headers: { cookie: refreshCookie! },
+      headers: { cookie: cookieHeader },
     })
 
     const refreshResponse = await POST(refreshRequest)
     const payload = await refreshResponse.json()
 
     expect(refreshResponse.status).toBe(200)
-    expect(payload.accessToken).toBeTypeOf("string")
-    expect(payload.user.email).toBe("admin@test.local")
+    expect(payload.ok).toBe(true)
+    expect(payload.data.accessToken).toBeTypeOf("string")
+    expect(payload.data.user.email).toBe("admin@test.local")
   })
 
   it("rejects refresh after logout revocation", async () => {
@@ -59,24 +73,40 @@ describe("POST /api/auth/refresh", () => {
     })
 
     const loginResponse = await loginPost(loginRequest)
-    const refreshCookie = loginResponse.headers.get("set-cookie")
+    const setCookieHeader = loginResponse.headers.get("set-cookie")
+    const cookieHeader = buildCookieHeader(setCookieHeader ?? "")
 
-    expect(refreshCookie).toBeTruthy()
+    expect(setCookieHeader).toBeTruthy()
 
     const logoutRequest = new Request("http://localhost:3000/api/auth/logout", {
       method: "POST",
-      headers: { cookie: refreshCookie! },
+      headers: { cookie: cookieHeader },
     })
 
     await logoutPost(logoutRequest)
 
     const refreshRequest = new Request("http://localhost:3000/api/auth/refresh", {
       method: "POST",
-      headers: { cookie: refreshCookie! },
+      headers: { cookie: cookieHeader },
     })
 
     const refreshResponse = await POST(refreshRequest)
+    const payload = await refreshResponse.json()
 
     expect(refreshResponse.status).toBe(401)
+    expect(payload.error.code).toBe("invalid_refresh_token")
+  })
+
+  it("returns unauthorized when refresh cookie is missing", async () => {
+    const refreshResponse = await POST(
+      new Request("http://localhost:3000/api/auth/refresh", {
+        method: "POST",
+      }),
+    )
+
+    const payload = await refreshResponse.json()
+
+    expect(refreshResponse.status).toBe(401)
+    expect(payload.error.code).toBe("missing_refresh_token")
   })
 })

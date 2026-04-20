@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest"
 
 import { clearAuthSessionsForTests } from "@server/features/auth/application/auth-session-store"
 import {
+  getUserFromAccessToken,
   loginWithEmailPassword,
   logoutRefreshToken,
   refreshAccessToken,
@@ -57,5 +58,16 @@ describe("auth service", () => {
     const refreshResult = refreshAccessToken(loginResult!.refreshToken)
 
     expect(refreshResult).toBeNull()
+  })
+
+  it("returns user data from a valid access token", async () => {
+    const loginResult = await loginWithEmailPassword("admin@test.local", "admin-password")
+
+    expect(loginResult).not.toBeNull()
+
+    const user = getUserFromAccessToken(loginResult!.accessToken)
+
+    expect(user).not.toBeNull()
+    expect(user?.email).toBe("admin@test.local")
   })
 })

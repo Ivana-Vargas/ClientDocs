@@ -1,1 +1,61 @@
-{}
+{
+  "common": {
+    "brand": "ClientDocs",
+    "language": "Idioma",
+    "english": "Inglés",
+    "spanish": "Español",
+    "close": "Cerrar",
+    "languageUpdated": "Idioma actualizado",
+    "languageError": "No se pudo actualizar el idioma"
+  },
+  "login": {
+    "title": "Inicio de sesión",
+    "subtitle": "Acceso seguro para admin y manager",
+    "emailLabel": "E-Mail",
+    "passwordLabel": "Contraseña",
+    "showPassword": "Mostrar contraseña",
+    "hidePassword": "Ocultar contraseña",
+    "submit": "Iniciar sesión",
+    "submitting": "Iniciando sesión...",
+    "validationTitle": "Error de validación",
+    "validationDescription": "Ingresa tu e-mail y contraseña para continuar",
+    "missingEmail": "Debe ingresar e-mail.",
+    "missingPassword": "Debe ingresar contraseña.",
+    "missingEmailAndPassword": "Debe ingresar e-mail y contraseña.",
+    "inlineInvalidCredentials": "Contraseña incorrecta",
+    "successTitle": "Sesión iniciada",
+    "successDescription": "Acceso concedido",
+    "serviceErrorTitle": "Error del servicio",
+    "serviceUnavailable": "El servicio está temporalmente no disponible. Intenta nuevamente en un momento.",
+    "unexpectedError": "Error inesperado al intentar iniciar sesión",
+    "error401": "Error 401: Credenciales inválidas",
+    "error401Description": "El e-mail o la contraseña no son correctos.",
+    "error400": "Error 400: Solicitud inválida",
+    "error400Description": "Completa e-mail y contraseña para iniciar sesión.",
+    "error500": "Error 500: Error interno del servidor",
+    "error500Description": "Ocurrió un problema del servidor. Inténtalo nuevamente."
+  },
+  "dashboard": {
+    "title": "Panel",
+    "welcome": "Espacio seguro cargado para",
+    "clientsTitle": "Clientes",
+    "clientsDescription": "La gestión de registros de clientes es el siguiente paso.",
+    "documentsTitle": "Documentos",
+    "documentsDescription": "La gestión de documentos PDF se integrará en el siguiente paso.",
+    "paymentsTitle": "Pagos",
+    "paymentsDescription": "El control de deuda y movimientos se implementará en los próximos pasos."
+  },
+  "placeholders": {
+    "clientsTitle": "Clientes",
+    "clientsDescription": "Módulo de clientes listo para implementación.",
+    "documentsTitle": "Documentos",
+    "documentsDescription": "Módulo de documentos listo para implementación.",
+    "paymentsTitle": "Pagos",
+    "paymentsDescription": "Módulo de pagos listo para implementación."
+  },
+  "session": {
+    "logout": "Cerrar sesión",
+    "logoutSuccess": "Sesión cerrada",
+    "logoutError": "No se pudo cerrar la sesión"
+  }
+}

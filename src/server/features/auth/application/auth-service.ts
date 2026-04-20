@@ -11,8 +11,10 @@ import {
 } from "@server/features/auth/application/auth-user-store"
 import {
   issueTokenPair,
+  verifyAccessToken,
   verifyRefreshToken,
 } from "@server/features/auth/infrastructure/jwt-token-service"
+import type { AuthRole } from "@server/features/auth/domain/auth-role"
 
 export async function loginWithEmailPassword(email: string, password: string) {
   const user = findAuthUserByEmail(email)
@@ -103,5 +105,23 @@ export function logoutRefreshToken(refreshToken: string) {
     revokeRefreshSession(payload.jti)
   } catch {
     return
+  }
+}
+
+export function getUserFromAccessToken(accessToken: string) {
+  try {
+    const payload = verifyAccessToken(accessToken)
+
+    if (payload.type !== "access") {
+      return null
+    }
+
+    return {
+      id: payload.sub,
+      email: payload.email,
+      role: payload.role as AuthRole,
+    }
+  } catch {
+    return null
   }
 }

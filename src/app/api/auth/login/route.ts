@@ -1,40 +1,80 @@
-import { NextResponse } from "next/server"
 import { z } from "zod"
 
 import { loginWithEmailPassword } from "@server/features/auth/application/auth-service"
-import { setRefreshTokenCookie } from "@server/features/auth/presentation/auth-cookies"
+import {
+  setAccessTokenCookie,
+  setRefreshTokenCookie,
+} from "@server/features/auth/presentation/auth-cookies"
+import { AppError } from "@server/shared/errors/app-error"
+import {
+  errorResponse,
+  successResponse,
+  validationDetailsFromZod,
+} from "@server/shared/errors/api-response"
+import { HTTP_STATUS } from "@server/shared/errors/http-status"
+import { logHttpRequestResult } from "@server/shared/observability/http-console-logger"
 import { logger } from "@server/shared/observability/logger"
 
 const loginSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
+  email: z.string().trim().min(1),
+  password: z.string().min(1),
 })
 
 export async function POST(request: Request) {
-  const json = await request.json().catch(() => null)
-  const parseResult = loginSchema.safeParse(json)
+  const startedAt = Date.now()
+  const path = new URL(request.url).pathname
 
-  if (!parseResult.success) {
-    return NextResponse.json({ error: "invalid_request" }, { status: 400 })
+  try {
+    const json = await request.json().catch(() => null)
+    const parseResult = loginSchema.safeParse(json)
+
+    if (!parseResult.success) {
+      throw new AppError({
+        code: "invalid_request",
+        status: HTTP_STATUS.badRequest,
+        message: "invalid login payload",
+        details: validationDetailsFromZod(parseResult.error.flatten().fieldErrors),
+      })
+    }
+
+    const result = await loginWithEmailPassword(parseResult.data.email, parseResult.data.password)
+
+    if (!result) {
+      logger.warn({ event: "login_failed", email: parseResult.data.email }, "login failed")
+      throw new AppError({
+        code: "invalid_credentials",
+        status: HTTP_STATUS.unauthorized,
+        message: "invalid email or password",
+      })
+    }
+
+    const response = successResponse(
+      {
+        accessToken: result.accessToken,
+        user: result.user,
+      },
+      HTTP_STATUS.ok,
+    )
+
+    setAccessTokenCookie(response, result.accessToken)
+    setRefreshTokenCookie(response, result.refreshToken)
+    logger.info({ event: "login_success", userId: result.user.id }, "login success")
+    logHttpRequestResult({
+      method: request.method,
+      path,
+      status: response.status,
+      durationMs: Date.now() - startedAt,
+    })
+
+    return response
+  } catch (error) {
+    const response = errorResponse(error)
+    logHttpRequestResult({
+      method: request.method,
+      path,
+      status: response.status,
+      durationMs: Date.now() - startedAt,
+    })
+    return response
   }
-
-  const result = await loginWithEmailPassword(parseResult.data.email, parseResult.data.password)
-
-  if (!result) {
-    logger.warn({ event: "login_failed", email: parseResult.data.email }, "login failed")
-    return NextResponse.json({ error: "invalid_credentials" }, { status: 401 })
-  }
-
-  const response = NextResponse.json(
-    {
-      accessToken: result.accessToken,
-      user: result.user,
-    },
-    { status: 200 },
-  )
-
-  setRefreshTokenCookie(response, result.refreshToken)
-  logger.info({ event: "login_success", userId: result.user.id }, "login success")
-
-  return response
 }

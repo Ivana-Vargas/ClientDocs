@@ -1,29 +1,22 @@
-import { logoutRefreshToken } from "@server/features/auth/application/auth-service"
-import {
-  clearAccessTokenCookie,
-  clearRefreshTokenCookie,
-  getRefreshTokenCookieName,
-} from "@server/features/auth/presentation/auth-cookies"
 import { errorResponse, successResponse } from "@server/shared/errors/api-response"
 import { HTTP_STATUS } from "@server/shared/errors/http-status"
 import { logHttpRequestResult } from "@server/shared/observability/http-console-logger"
-import { getCookieValue } from "@server/shared/security/cookie-utils"
+import { requireAuthenticatedUser } from "@server/shared/security/access-guard"
 
-export async function POST(request: Request) {
+export async function GET(request: Request) {
   const startedAt = Date.now()
   const path = new URL(request.url).pathname
 
   try {
-    const cookieHeader = request.headers.get("cookie") ?? ""
-    const refreshToken = getCookieValue(cookieHeader, getRefreshTokenCookieName())
+    const user = requireAuthenticatedUser(request.headers.get("cookie") ?? "")
 
-    if (refreshToken) {
-      logoutRefreshToken(refreshToken)
-    }
+    const response = successResponse(
+      {
+        user,
+      },
+      HTTP_STATUS.ok,
+    )
 
-    const response = successResponse({ success: true }, HTTP_STATUS.ok)
-    clearAccessTokenCookie(response)
-    clearRefreshTokenCookie(response)
     logHttpRequestResult({
       method: request.method,
       path,
