@@ -1,4 +1,4 @@
-import { refreshAccessToken } from "@server/features/auth/application/auth-service"
+import { refreshAccessTokenFromDb } from "@server/features/auth/application/auth-db-service"
 import {
   setAccessTokenCookie,
   getRefreshTokenCookieName,
@@ -13,6 +13,8 @@ import { logHttpRequestResult } from "@server/shared/observability/http-console-
 export async function POST(request: Request) {
   const startedAt = Date.now()
   const path = new URL(request.url).pathname
+  const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+  const userAgent = request.headers.get("user-agent") ?? undefined
 
   try {
     const cookieHeader = request.headers.get("cookie") ?? ""
@@ -26,7 +28,10 @@ export async function POST(request: Request) {
       })
     }
 
-    const result = refreshAccessToken(refreshToken)
+    const result = await refreshAccessTokenFromDb(refreshToken, {
+      ipAddress,
+      userAgent,
+    })
 
     if (!result) {
       throw new AppError({

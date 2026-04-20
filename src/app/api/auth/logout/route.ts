@@ -1,4 +1,4 @@
-import { logoutRefreshToken } from "@server/features/auth/application/auth-service"
+import { logoutRefreshTokenFromDb } from "@server/features/auth/application/auth-db-service"
 import {
   clearAccessTokenCookie,
   clearRefreshTokenCookie,
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     const refreshToken = getCookieValue(cookieHeader, getRefreshTokenCookieName())
 
     if (refreshToken) {
-      logoutRefreshToken(refreshToken)
+      await logoutRefreshTokenFromDb(refreshToken)
     }
 
     const response = successResponse({ success: true }, HTTP_STATUS.ok)

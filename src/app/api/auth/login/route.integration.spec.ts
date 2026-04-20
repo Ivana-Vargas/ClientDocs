@@ -1,20 +1,18 @@
 import { beforeEach, describe, expect, it } from "vitest"
 
-import { clearAuthSessionsForTests } from "@server/features/auth/application/auth-session-store"
-import { resetAuthUsersForTests } from "@server/features/auth/application/auth-user-store"
+import { resetAuthDatabaseForTests } from "@server/features/auth/infrastructure/auth-test-db-utils"
 
 import { POST } from "./route"
 
 describe("POST /api/auth/login", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     process.env.ADMIN_EMAIL = "admin@test.local"
     process.env.ADMIN_PASSWORD = "admin-password"
     process.env.MANAGER_EMAIL = "manager@test.local"
     process.env.MANAGER_PASSWORD = "manager-password"
     process.env.JWT_SECRET = "test-secret"
 
-    resetAuthUsersForTests()
-    clearAuthSessionsForTests()
+    await resetAuthDatabaseForTests()
   })
 
   it("returns access token and refresh cookie on success", async () => {

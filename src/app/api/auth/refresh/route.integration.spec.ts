@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 
-import { clearAuthSessionsForTests } from "@server/features/auth/application/auth-session-store"
-import { resetAuthUsersForTests } from "@server/features/auth/application/auth-user-store"
+import { resetAuthDatabaseForTests } from "@server/features/auth/infrastructure/auth-test-db-utils"
 
 import { POST as loginPost } from "@app/api/auth/login/route"
 import { POST as logoutPost } from "@app/api/auth/logout/route"
@@ -9,27 +8,23 @@ import { POST as logoutPost } from "@app/api/auth/logout/route"
 import { POST } from "./route"
 
 function extractCookieValue(setCookieHeader: string, cookieName: string) {
-  const match = setCookieHeader.match(new RegExp(`${cookieName}=([^;,]+)`))
+  const match = setCookieHeader.match(new RegExp(`${cookieName}=([^;,\\s]+)`))
   return match?.[1] ?? ""
 }
 
-function buildCookieHeader(setCookieHeader: string) {
-  const accessToken = extractCookieValue(setCookieHeader, "clientdocs_access_token")
-  const refreshToken = extractCookieValue(setCookieHeader, "clientdocs_refresh_token")
-
-  return `clientdocs_access_token=${accessToken}; clientdocs_refresh_token=${refreshToken}`
+function buildCookieHeader(refreshToken: string) {
+  return `clientdocs_refresh_token=${refreshToken}`
 }
 
 describe("POST /api/auth/refresh", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     process.env.ADMIN_EMAIL = "admin@test.local"
     process.env.ADMIN_PASSWORD = "admin-password"
     process.env.MANAGER_EMAIL = "manager@test.local"
     process.env.MANAGER_PASSWORD = "manager-password"
     process.env.JWT_SECRET = "test-secret"
 
-    resetAuthUsersForTests()
-    clearAuthSessionsForTests()
+    await resetAuthDatabaseForTests()
   })
 
   it("issues new tokens with a valid refresh cookie", async () => {
@@ -43,10 +38,13 @@ describe("POST /api/auth/refresh", () => {
     })
 
     const loginResponse = await loginPost(loginRequest)
-    const setCookieHeader = loginResponse.headers.get("set-cookie")
-    const cookieHeader = buildCookieHeader(setCookieHeader ?? "")
+    const setCookieHeader = loginResponse.headers.get("set-cookie") ?? ""
+    const refreshToken =
+      loginResponse.cookies.get("clientdocs_refresh_token")?.value ??
+      extractCookieValue(setCookieHeader, "clientdocs_refresh_token")
+    const cookieHeader = buildCookieHeader(refreshToken)
 
-    expect(setCookieHeader).toBeTruthy()
+    expect(refreshToken).toBeTruthy()
 
     const refreshRequest = new Request("http://localhost:3000/api/auth/refresh", {
       method: "POST",
@@ -73,10 +71,13 @@ describe("POST /api/auth/refresh", () => {
     })
 
     const loginResponse = await loginPost(loginRequest)
-    const setCookieHeader = loginResponse.headers.get("set-cookie")
-    const cookieHeader = buildCookieHeader(setCookieHeader ?? "")
+    const setCookieHeader = loginResponse.headers.get("set-cookie") ?? ""
+    const refreshToken =
+      loginResponse.cookies.get("clientdocs_refresh_token")?.value ??
+      extractCookieValue(setCookieHeader, "clientdocs_refresh_token")
+    const cookieHeader = buildCookieHeader(refreshToken)
 
-    expect(setCookieHeader).toBeTruthy()
+    expect(refreshToken).toBeTruthy()
 
     const logoutRequest = new Request("http://localhost:3000/api/auth/logout", {
       method: "POST",

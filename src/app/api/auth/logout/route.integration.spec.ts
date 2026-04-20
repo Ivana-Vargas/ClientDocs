@@ -1,34 +1,30 @@
 import { beforeEach, describe, expect, it } from "vitest"
 
-import { clearAuthSessionsForTests } from "@server/features/auth/application/auth-session-store"
-import { resetAuthUsersForTests } from "@server/features/auth/application/auth-user-store"
+import { resetAuthDatabaseForTests } from "@server/features/auth/infrastructure/auth-test-db-utils"
 
 import { POST as loginPost } from "@app/api/auth/login/route"
 
 import { POST } from "./route"
 
 function extractCookieValue(setCookieHeader: string, cookieName: string) {
-  const match = setCookieHeader.match(new RegExp(`${cookieName}=([^;,]+)`))
+  const match = setCookieHeader.match(new RegExp(`${cookieName}=([^;,\\s]+)`))
   return match?.[1] ?? ""
 }
 
 function buildCookieHeader(setCookieHeader: string) {
-  const accessToken = extractCookieValue(setCookieHeader, "clientdocs_access_token")
   const refreshToken = extractCookieValue(setCookieHeader, "clientdocs_refresh_token")
-
-  return `clientdocs_access_token=${accessToken}; clientdocs_refresh_token=${refreshToken}`
+  return `clientdocs_refresh_token=${refreshToken}`
 }
 
 describe("POST /api/auth/logout", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     process.env.ADMIN_EMAIL = "admin@test.local"
     process.env.ADMIN_PASSWORD = "admin-password"
     process.env.MANAGER_EMAIL = "manager@test.local"
     process.env.MANAGER_PASSWORD = "manager-password"
     process.env.JWT_SECRET = "test-secret"
 
-    resetAuthUsersForTests()
-    clearAuthSessionsForTests()
+    await resetAuthDatabaseForTests()
   })
 
   it("clears session cookies and returns success response", async () => {

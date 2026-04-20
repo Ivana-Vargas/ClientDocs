@@ -1,34 +1,25 @@
 import { beforeEach, describe, expect, it } from "vitest"
 
-import { clearAuthSessionsForTests } from "@server/features/auth/application/auth-session-store"
-import { resetAuthUsersForTests } from "@server/features/auth/application/auth-user-store"
+import { resetAuthDatabaseForTests } from "@server/features/auth/infrastructure/auth-test-db-utils"
 
 import { POST as loginPost } from "@app/api/auth/login/route"
 
 import { GET } from "./route"
 
 function extractCookieValue(setCookieHeader: string, cookieName: string) {
-  const match = setCookieHeader.match(new RegExp(`${cookieName}=([^;,]+)`))
+  const match = setCookieHeader.match(new RegExp(`${cookieName}=([^;,\\s]+)`))
   return match?.[1] ?? ""
 }
 
-function buildCookieHeader(setCookieHeader: string) {
-  const accessToken = extractCookieValue(setCookieHeader, "clientdocs_access_token")
-  const refreshToken = extractCookieValue(setCookieHeader, "clientdocs_refresh_token")
-
-  return `clientdocs_access_token=${accessToken}; clientdocs_refresh_token=${refreshToken}`
-}
-
 describe("GET /api/auth/session", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     process.env.ADMIN_EMAIL = "admin@test.local"
     process.env.ADMIN_PASSWORD = "admin-password"
     process.env.MANAGER_EMAIL = "manager@test.local"
     process.env.MANAGER_PASSWORD = "manager-password"
     process.env.JWT_SECRET = "test-secret"
 
-    resetAuthUsersForTests()
-    clearAuthSessionsForTests()
+    await resetAuthDatabaseForTests()
   })
 
   it("returns current user for valid access token", async () => {
@@ -40,7 +31,11 @@ describe("GET /api/auth/session", () => {
       }),
     )
 
-    const cookieHeader = buildCookieHeader(loginResponse.headers.get("set-cookie") ?? "")
+    const setCookieHeader = loginResponse.headers.get("set-cookie") ?? ""
+    const accessToken =
+      loginResponse.cookies.get("clientdocs_access_token")?.value ??
+      extractCookieValue(setCookieHeader, "clientdocs_access_token")
+    const cookieHeader = `clientdocs_access_token=${accessToken}`
 
     const response = await GET(
       new Request("http://localhost:3000/api/auth/session", {

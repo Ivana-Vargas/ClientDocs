@@ -5,7 +5,7 @@ import { redirect } from "next/navigation"
 
 import { LanguageSwitcher } from "@app/shared/ui/language-switcher"
 import { LogoutButton } from "@app/shared/ui/logout-button"
-import { getUserFromAccessToken } from "@server/features/auth/application/auth-service"
+import { getUserFromAccessToken } from "@server/features/auth/application/auth-db-service"
 import { getAccessTokenCookieName } from "@server/features/auth/presentation/auth-cookies"
 import { getDictionary } from "@shared/localization/dictionary"
 import { LOCALE_COOKIE_NAME, resolveLocale } from "@shared/localization/config"

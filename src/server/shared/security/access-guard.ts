@@ -1,4 +1,4 @@
-import { getUserFromAccessToken } from "@server/features/auth/application/auth-service"
+import { getUserFromAccessToken } from "@server/features/auth/application/auth-db-service"
 import { getAccessTokenCookieName } from "@server/features/auth/presentation/auth-cookies"
 import { AppError } from "@server/shared/errors/app-error"
 import { HTTP_STATUS } from "@server/shared/errors/http-status"

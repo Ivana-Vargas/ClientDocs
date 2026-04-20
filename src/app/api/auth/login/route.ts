@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { loginWithEmailPassword } from "@server/features/auth/application/auth-service"
+import { loginWithEmailPasswordFromDb } from "@server/features/auth/application/auth-db-service"
 import {
   setAccessTokenCookie,
   setRefreshTokenCookie,
@@ -23,6 +23,8 @@ const loginSchema = z.object({
 export async function POST(request: Request) {
   const startedAt = Date.now()
   const path = new URL(request.url).pathname
+  const ipAddress = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+  const userAgent = request.headers.get("user-agent") ?? undefined
 
   try {
     const json = await request.json().catch(() => null)
@@ -37,7 +39,10 @@ export async function POST(request: Request) {
       })
     }
 
-    const result = await loginWithEmailPassword(parseResult.data.email, parseResult.data.password)
+    const result = await loginWithEmailPasswordFromDb(parseResult.data.email, parseResult.data.password, {
+      ipAddress,
+      userAgent,
+    })
 
     if (!result) {
       logger.warn({ event: "login_failed", email: parseResult.data.email }, "login failed")
