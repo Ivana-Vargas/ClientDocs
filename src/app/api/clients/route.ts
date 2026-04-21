@@ -14,11 +14,13 @@ import {
 import { HTTP_STATUS } from "@server/shared/errors/http-status"
 import { logHttpRequestResult } from "@server/shared/observability/http-console-logger"
 import { requireAuthenticatedUser } from "@server/shared/security/access-guard"
+import { parseDecimalAmountToCents } from "@server/shared/utils/amount-in-cents"
 
 const statusSchema = z.enum(CLIENT_STATUSES)
 
 const createClientSchema = z.object({
   fullName: z.string().trim().min(1).max(120),
+  totalDebt: z.number().min(0).max(1_000_000_000).default(0),
   nationalId: z.string().max(40).optional(),
   phoneNumber: z.string().max(40).optional(),
   email: z.string().email().max(180).optional().or(z.literal("")),
@@ -93,7 +95,17 @@ export async function POST(request: Request) {
       })
     }
 
-    const client = await createClientInDb(parseResult.data, user.id)
+    const client = await createClientInDb(
+      {
+        ...parseResult.data,
+        totalDebtInCents: parseDecimalAmountToCents(
+          parseResult.data.totalDebt,
+          "totalDebt",
+          "invalid client payload",
+        ),
+      },
+      user.id,
+    )
     const response = successResponse({ client }, HTTP_STATUS.created)
 
     logHttpRequestResult({

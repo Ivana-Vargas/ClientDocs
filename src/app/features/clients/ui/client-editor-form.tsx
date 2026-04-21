@@ -12,6 +12,7 @@ type ClientFormLabels = {
   createDescription: string
   editDescription: string
   fullNameLabel: string
+  totalDebtLabel: string
   nationalIdLabel: string
   phoneLabel: string
   emailLabel: string
@@ -23,6 +24,7 @@ type ClientFormLabels = {
   loading: string
   validationTitle: string
   validationFullName: string
+  validationTotalDebt: string
   createSuccessTitle: string
   createSuccessDescription: string
   updateSuccessTitle: string
@@ -37,12 +39,29 @@ type ClientEditorFormProps = {
   clientPublicId?: string
   initialValues?: {
     fullName: string
+    totalDebtInCents: number
     nationalId: string
     phoneNumber: string
     email: string
     addressLine: string
     notes: string
   }
+}
+
+function parseTotalDebtInput(value: string) {
+  const normalized = value.trim().replace(/\s+/g, "").replace(",", ".")
+
+  if (normalized.length === 0) {
+    return 0
+  }
+
+  const parsed = Number(normalized)
+
+  if (!Number.isFinite(parsed)) {
+    return null
+  }
+
+  return parsed
 }
 
 export function ClientEditorForm({
@@ -55,6 +74,9 @@ export function ClientEditorForm({
   const { showToast } = useToast()
 
   const [fullName, setFullName] = useState(initialValues?.fullName ?? "")
+  const [totalDebt, setTotalDebt] = useState(
+    initialValues ? String((initialValues.totalDebtInCents / 100).toFixed(2)) : "0.00",
+  )
   const [nationalId, setNationalId] = useState(initialValues?.nationalId ?? "")
   const [phoneNumber, setPhoneNumber] = useState(initialValues?.phoneNumber ?? "")
   const [email, setEmail] = useState(initialValues?.email ?? "")
@@ -78,11 +100,23 @@ export function ClientEditorForm({
       return
     }
 
+    const parsedTotalDebt = parseTotalDebtInput(totalDebt)
+
+    if (parsedTotalDebt === null || parsedTotalDebt < 0) {
+      showToast({
+        title: labels.validationTitle,
+        description: labels.validationTotalDebt,
+        variant: "error",
+      })
+      return
+    }
+
     try {
       setIsSaving(true)
 
       const payload = {
         fullName,
+        totalDebt: parsedTotalDebt,
         nationalId,
         phoneNumber,
         email,
@@ -117,8 +151,11 @@ export function ClientEditorForm({
       router.push("/clients")
       router.refresh()
     } catch (error) {
-      if (error instanceof ApiClientError && error.details?.some((detail) => detail.field === "fullName")) {
-        setFullNameError(true)
+      if (error instanceof ApiClientError) {
+        if (error.details?.some((detail) => detail.field === "fullName")) {
+          setFullNameError(true)
+        }
+
       }
 
       showToast({
@@ -154,6 +191,17 @@ export function ClientEditorForm({
             className={fullNameError ? "input--error" : undefined}
             aria-invalid={fullNameError ? "true" : "false"}
             maxLength={120}
+          />
+
+          <label htmlFor="totalDebt">{labels.totalDebtLabel}</label>
+          <input
+            id="totalDebt"
+            type="number"
+            min="0"
+            step="0.01"
+            value={totalDebt}
+            onChange={(event) => setTotalDebt(event.target.value)}
+            placeholder="0.00"
           />
 
           <label htmlFor="nationalId">{labels.nationalIdLabel}</label>

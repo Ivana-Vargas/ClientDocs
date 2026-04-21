@@ -267,6 +267,10 @@ main.login-page {
 .clients-danger-button:focus-visible,
 .clients-row__main-link:focus-visible,
 .clients-delete-modal__input:focus-visible,
+.payments-date-picker__trigger:focus-visible,
+.payments-date-picker__month-nav:focus-visible,
+.payments-date-picker__day:focus-visible,
+.clients-payment-list__item:focus-visible,
 .clients-form input:focus-visible,
 .clients-form textarea:focus-visible,
 .clients-form select:focus-visible {
@@ -303,6 +307,7 @@ main.login-page {
 .private-page__header h1 {
   margin: 0;
   font-size: 2rem;
+  color: var(--blue-900);
 }
 
 .private-page__header p {
@@ -420,6 +425,7 @@ main.login-page {
 .clients-row__main-link h2 {
   margin: 0;
   font-size: 1.05rem;
+  color: var(--blue-900);
 }
 
 .clients-row__main-link {
@@ -467,6 +473,7 @@ main.login-page {
 .clients-editor-modal__header h1 {
   margin: 0;
   font-size: 1.45rem;
+  color: var(--blue-900);
 }
 
 .clients-editor-modal__header p {
@@ -579,6 +586,7 @@ main.login-page {
 
 .clients-detail-card h2 {
   margin: 0 0 8px;
+  color: var(--blue-900);
 }
 
 .clients-detail-card p {
@@ -586,11 +594,92 @@ main.login-page {
   color: var(--color-text-muted);
 }
 
-.clients-detail-card__count {
+.clients-detail-card p.clients-detail-card__count {
   margin: 0 0 6px;
   font-size: 1.3rem;
-  color: var(--blue-900);
+  color: var(--blue-500);
   font-weight: 700;
+}
+
+.clients-detail-card p.clients-detail-card__count-subtitle {
+  margin: 0 0 8px;
+  font-weight: 700;
+  color: #2f8f5d;
+}
+
+.clients-detail-card__count-subtitle--positive {
+  color: #2f8f5d;
+}
+
+.clients-payment-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.clients-payment-list__item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  background: #ffffff;
+  cursor: pointer;
+  text-align: left;
+}
+
+.clients-payment-list__item:hover {
+  border-color: #b7cbe0;
+  background: #f8fbff;
+}
+
+.clients-payment-list__item strong {
+  color: var(--blue-900);
+}
+
+.clients-payment-list__item span {
+  color: var(--color-text-muted);
+  font-size: 0.86rem;
+}
+
+.clients-payment-list__empty {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.clients-payment-modal {
+  width: min(460px, 100%);
+}
+
+.clients-payment-modal__details {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.clients-payment-modal__details div {
+  border-bottom: 1px solid var(--color-border-soft);
+  padding-bottom: 8px;
+}
+
+.clients-payment-modal__details dt {
+  color: var(--blue-700);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.clients-payment-modal__details dd {
+  margin: 4px 0 0;
+}
+
+.clients-payment-modal__actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .clients-detail-fields {
@@ -605,8 +694,9 @@ main.login-page {
 }
 
 .clients-detail-fields dt {
-  color: var(--color-text-muted);
+  color: var(--blue-700);
   font-size: 0.82rem;
+  font-weight: 600;
 }
 
 .clients-detail-fields dd {
@@ -674,6 +764,103 @@ main.login-page {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.payments-date-picker__hint {
+  margin-top: -2px;
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+.payments-date-picker {
+  position: relative;
+}
+
+.payments-date-picker__trigger {
+  width: 100%;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+  background: #ffffff;
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 0.95rem;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.payments-date-picker__trigger:hover {
+  border-color: #c5d4e2;
+}
+
+.payments-date-picker__panel {
+  position: absolute;
+  z-index: 30;
+  width: 100%;
+  margin-top: 6px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  box-shadow: var(--shadow-soft);
+  padding: 10px;
+}
+
+.payments-date-picker__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.payments-date-picker__header strong {
+  font-size: 0.95rem;
+  text-transform: capitalize;
+}
+
+.payments-date-picker__month-nav {
+  border: 1px solid var(--color-border-soft);
+  background: #ffffff;
+  border-radius: 7px;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+}
+
+.payments-date-picker__weekdays,
+.payments-date-picker__days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+}
+
+.payments-date-picker__weekdays span {
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.payments-date-picker__day,
+.payments-date-picker__day-empty {
+  width: 100%;
+  aspect-ratio: 1;
+}
+
+.payments-date-picker__day {
+  border: 1px solid var(--color-border-soft);
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.payments-date-picker__day:hover {
+  background: #f1f7fd;
+  border-color: #c5d4e2;
+}
+
+.payments-date-picker__day--selected {
+  background: var(--color-primary);
+  border-color: transparent;
+  color: var(--color-primary-contrast);
 }
 
 .toast-stack {

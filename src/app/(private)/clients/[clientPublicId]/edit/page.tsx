@@ -30,6 +30,7 @@ export default async function EditClientPage({ params }: EditClientPageProps) {
       clientPublicId={client.publicId}
       initialValues={{
         fullName: client.fullName,
+        totalDebtInCents: client.totalDebtInCents,
         nationalId: client.nationalId ?? "",
         phoneNumber: client.phoneNumber ?? "",
         email: client.email ?? "",
@@ -42,6 +43,7 @@ export default async function EditClientPage({ params }: EditClientPageProps) {
         createDescription: dictionary.clients.createDescription,
         editDescription: dictionary.clients.editDescription,
         fullNameLabel: dictionary.clients.fullNameLabel,
+        totalDebtLabel: dictionary.clients.totalDebtLabel,
         nationalIdLabel: dictionary.clients.nationalIdLabel,
         phoneLabel: dictionary.clients.phoneLabel,
         emailLabel: dictionary.clients.emailLabel,
@@ -53,6 +55,7 @@ export default async function EditClientPage({ params }: EditClientPageProps) {
         loading: dictionary.clients.loading,
         validationTitle: dictionary.clients.validationTitle,
         validationFullName: dictionary.clients.validationFullName,
+        validationTotalDebt: dictionary.clients.validationTotalDebt,
         createSuccessTitle: dictionary.clients.createSuccessTitle,
         createSuccessDescription: dictionary.clients.createSuccessDescription,
         updateSuccessTitle: dictionary.clients.updateSuccessTitle,

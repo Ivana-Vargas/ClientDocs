@@ -59,9 +59,9 @@ describe("/api/clients", () => {
         },
         body: JSON.stringify({
           fullName: "Ada Lovelace",
+          totalDebt: 5000.25,
           phoneNumber: "+54 11 5555 3333",
           email: "ada@example.com",
-          status: "ACTIVE",
         }),
       }),
     )
@@ -71,6 +71,7 @@ describe("/api/clients", () => {
     expect(createResponse.status).toBe(201)
     expect(createPayload.ok).toBe(true)
     expect(createPayload.data.client.fullName).toBe("Ada Lovelace")
+    expect(createPayload.data.client.totalDebtInCents).toBe(500025)
 
     const listResponse = await GET(
       new Request("http://localhost:3000/api/clients", {
@@ -99,7 +100,6 @@ describe("/api/clients", () => {
         },
         body: JSON.stringify({
           fullName: "",
-          status: "ACTIVE",
         }),
       }),
     )

@@ -14,6 +14,7 @@ import {
 import { HTTP_STATUS } from "@server/shared/errors/http-status"
 import { logHttpRequestResult } from "@server/shared/observability/http-console-logger"
 import { requireAuthenticatedUser } from "@server/shared/security/access-guard"
+import { parseDecimalAmountToCents } from "@server/shared/utils/amount-in-cents"
 
 type RouteContext = {
   params: Promise<{
@@ -24,6 +25,7 @@ type RouteContext = {
 const updateClientSchema = z
   .object({
     fullName: z.string().trim().min(1).max(120).optional(),
+    totalDebt: z.number().min(0).max(1_000_000_000).optional(),
     nationalId: z.string().max(40).optional(),
     phoneNumber: z.string().max(40).optional(),
     email: z.string().email().max(180).optional().or(z.literal("")),
@@ -93,7 +95,13 @@ export async function PATCH(request: Request, context: RouteContext) {
       })
     }
 
-    const client = await updateClientByPublicIdFromDb(clientPublicId, parseResult.data)
+    const client = await updateClientByPublicIdFromDb(clientPublicId, {
+      ...parseResult.data,
+      totalDebtInCents:
+        parseResult.data.totalDebt === undefined
+          ? undefined
+          : parseDecimalAmountToCents(parseResult.data.totalDebt, "totalDebt", "invalid client payload"),
+    })
 
     if (!client) {
       throw new AppError({

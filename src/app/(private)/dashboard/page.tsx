@@ -15,7 +15,7 @@ export default async function DashboardPage() {
   const user = getUserFromAccessToken(token)
   const clientsCount = await prismaClient.client.count()
   const documentsCount = 0
-  const paymentsCount = 0
+  const paymentsCount = await prismaClient.payment.count()
   const welcomeMessage =
     user?.role === "manager" ? dictionary.dashboard.welcomeManager : dictionary.dashboard.welcomeAdmin
 

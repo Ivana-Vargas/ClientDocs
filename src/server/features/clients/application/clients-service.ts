@@ -6,6 +6,7 @@ type ClientRecord = {
   id: string
   publicId: string
   fullName: string
+  totalDebtInCents: number
   nationalId: string | null
   phoneNumber: string | null
   email: string | null
@@ -18,6 +19,7 @@ type ClientRecord = {
 
 export type CreateClientInput = {
   fullName: string
+  totalDebtInCents: number
   nationalId?: string
   phoneNumber?: string
   email?: string
@@ -27,6 +29,7 @@ export type CreateClientInput = {
 
 export type UpdateClientInput = {
   fullName?: string
+  totalDebtInCents?: number
   nationalId?: string
   phoneNumber?: string
   email?: string
@@ -51,6 +54,7 @@ function toClientRecord(client: {
   id: string
   publicId: string
   fullName: string
+  totalDebtInCents: number
   nationalId: string | null
   phoneNumber: string | null
   email: string | null
@@ -64,6 +68,7 @@ function toClientRecord(client: {
     id: client.id,
     publicId: client.publicId,
     fullName: client.fullName,
+    totalDebtInCents: client.totalDebtInCents,
     nationalId: client.nationalId,
     phoneNumber: client.phoneNumber,
     email: client.email,
@@ -88,6 +93,7 @@ export async function createClientInDb(input: CreateClientInput, createdByUserId
   const client = await prismaClient.client.create({
     data: {
       fullName: normalizeRequiredText(input.fullName),
+      totalDebtInCents: input.totalDebtInCents,
       nationalId: normalizeOptionalText(input.nationalId),
       phoneNumber: normalizeOptionalText(input.phoneNumber),
       email: normalizeOptionalText(input.email),
@@ -127,6 +133,7 @@ export async function updateClientByPublicIdFromDb(clientPublicId: string, input
     where: { publicId: clientPublicId },
     data: {
       fullName: input.fullName === undefined ? undefined : normalizeRequiredText(input.fullName),
+      totalDebtInCents: input.totalDebtInCents,
       nationalId: normalizeOptionalText(input.nationalId),
       phoneNumber: normalizeOptionalText(input.phoneNumber),
       email: normalizeOptionalText(input.email),

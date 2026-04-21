@@ -18,6 +18,13 @@ enum ClientStatus {
   ARCHIVED
 }
 
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CARD
+  OTHER
+}
+
 model User {
   id              String        @id @default(uuid()) @db.Uuid
   publicId        String        @unique @default(cuid()) @map("public_id")
@@ -30,6 +37,7 @@ model User {
   updatedAt       DateTime      @updatedAt @map("updated_at")
   sessions        AuthSession[]
   createdClients  Client[]      @relation("ClientCreatedBy")
+  createdPayments Payment[]     @relation("PaymentCreatedBy")
 
   @@map("users")
 }
@@ -56,6 +64,7 @@ model Client {
   id              String       @id @default(uuid()) @db.Uuid
   publicId        String       @unique @default(cuid()) @map("public_id")
   fullName        String       @map("full_name")
+  totalDebtInCents Int         @default(0) @map("total_debt_in_cents")
   nationalId      String?      @map("national_id")
   phoneNumber     String?      @map("phone_number")
   email           String?
@@ -64,10 +73,32 @@ model Client {
   status          ClientStatus @default(ACTIVE)
   createdByUserId String?      @map("created_by_user_id") @db.Uuid
   createdByUser   User?        @relation("ClientCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  payments        Payment[]
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt       DateTime     @updatedAt @map("updated_at")
 
   @@index([status], map: "idx_clients_status")
   @@index([createdByUserId], map: "idx_clients_created_by_user_id")
   @@map("clients")
+}
+
+model Payment {
+  id              String        @id @default(uuid()) @db.Uuid
+  publicId        String        @unique @default(cuid()) @map("public_id")
+  clientId        String        @map("client_id") @db.Uuid
+  amountInCents   Int           @map("amount_in_cents")
+  currency        String        @default("BOB") @db.VarChar(3)
+  method          PaymentMethod @default(CASH)
+  referenceNote   String?       @map("reference_note")
+  paidAt          DateTime      @map("paid_at")
+  createdByUserId String?       @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  client          Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  createdByUser   User?         @relation("PaymentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([clientId], map: "idx_payments_client_id")
+  @@index([paidAt], map: "idx_payments_paid_at")
+  @@index([createdByUserId], map: "idx_payments_created_by_user_id")
+  @@map("payments")
 }

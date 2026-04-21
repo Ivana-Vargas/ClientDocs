@@ -4,7 +4,7 @@ import { POST as loginPost } from "@app/api/auth/login/route"
 import { POST as clientsPost } from "@app/api/clients/route"
 import { resetAuthDatabaseForTests } from "@server/features/auth/infrastructure/auth-test-db-utils"
 
-import { DELETE, GET, PATCH } from "./route"
+import { GET, POST } from "./route"
 
 function extractCookieValue(setCookieHeader: string, cookieName: string) {
   const match = setCookieHeader.match(new RegExp(`${cookieName}=([^;,\\s]+)`))
@@ -37,9 +37,8 @@ async function createClient(cookieHeader: string) {
         cookie: cookieHeader,
       },
       body: JSON.stringify({
-        fullName: "Grace Hopper",
-        totalDebt: 1000,
-        phoneNumber: "+54 11 1234 5678",
+        fullName: "Payment Client",
+        totalDebt: 3000,
       }),
     }),
   )
@@ -48,7 +47,7 @@ async function createClient(cookieHeader: string) {
   return payload.data.client.publicId as string
 }
 
-describe("/api/clients/[clientPublicId]", () => {
+describe("/api/clients/[clientPublicId]/payments", () => {
   beforeEach(async () => {
     process.env.ADMIN_EMAIL = "admin@test.local"
     process.env.ADMIN_PASSWORD = "admin-password"
@@ -59,39 +58,63 @@ describe("/api/clients/[clientPublicId]", () => {
     await resetAuthDatabaseForTests()
   })
 
-  it("returns client by public id", async () => {
+  it("creates and lists payments for client", async () => {
     const cookieHeader = await authCookieHeader()
     const clientPublicId = await createClient(cookieHeader)
 
-    const response = await GET(
-      new Request(`http://localhost:3000/api/clients/${clientPublicId}`, {
+    const createResponse = await POST(
+      new Request(`http://localhost:3000/api/clients/${clientPublicId}/payments`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          cookie: cookieHeader,
+        },
+        body: JSON.stringify({
+          amount: 1500.5,
+          method: "CARD",
+          referenceNote: "Payment test",
+          paidAt: "2026-04-20",
+        }),
+      }),
+      { params: Promise.resolve({ clientPublicId }) },
+    )
+
+    const createPayload = await createResponse.json()
+
+    expect(createResponse.status).toBe(201)
+    expect(createPayload.ok).toBe(true)
+    expect(createPayload.data.payment.amountInCents).toBe(150050)
+
+    const listResponse = await GET(
+      new Request(`http://localhost:3000/api/clients/${clientPublicId}/payments`, {
         method: "GET",
         headers: { cookie: cookieHeader },
       }),
       { params: Promise.resolve({ clientPublicId }) },
     )
 
-    const payload = await response.json()
+    const listPayload = await listResponse.json()
 
-    expect(response.status).toBe(200)
-    expect(payload.ok).toBe(true)
-    expect(payload.data.client.publicId).toBe(clientPublicId)
+    expect(listResponse.status).toBe(200)
+    expect(listPayload.ok).toBe(true)
+    expect(listPayload.data.payments).toHaveLength(1)
+    expect(listPayload.data.totalPaidInCents).toBe(150050)
   })
 
-  it("updates client by public id", async () => {
+  it("returns 400 for invalid amount precision", async () => {
     const cookieHeader = await authCookieHeader()
     const clientPublicId = await createClient(cookieHeader)
 
-    const response = await PATCH(
-      new Request(`http://localhost:3000/api/clients/${clientPublicId}`, {
-        method: "PATCH",
+    const response = await POST(
+      new Request(`http://localhost:3000/api/clients/${clientPublicId}/payments`, {
+        method: "POST",
         headers: {
           "content-type": "application/json",
           cookie: cookieHeader,
         },
         body: JSON.stringify({
-          fullName: "Grace M. Hopper",
-          totalDebt: 2000,
+          amount: 25.555,
+          method: "CASH",
         }),
       }),
       { params: Promise.resolve({ clientPublicId }) },
@@ -99,18 +122,16 @@ describe("/api/clients/[clientPublicId]", () => {
 
     const payload = await response.json()
 
-    expect(response.status).toBe(200)
-    expect(payload.ok).toBe(true)
-    expect(payload.data.client.fullName).toBe("Grace M. Hopper")
-    expect(payload.data.client.status).toBe("ACTIVE")
-    expect(payload.data.client.totalDebtInCents).toBe(200000)
+    expect(response.status).toBe(400)
+    expect(payload.ok).toBe(false)
+    expect(payload.error.code).toBe("invalid_request")
   })
 
   it("returns 404 when client does not exist", async () => {
     const cookieHeader = await authCookieHeader()
 
     const response = await GET(
-      new Request("http://localhost:3000/api/clients/does-not-exist", {
+      new Request("http://localhost:3000/api/clients/does-not-exist/payments", {
         method: "GET",
         headers: { cookie: cookieHeader },
       }),
@@ -124,18 +145,21 @@ describe("/api/clients/[clientPublicId]", () => {
     expect(payload.error.code).toBe("client_not_found")
   })
 
-  it("returns 400 for empty update body", async () => {
+  it("returns 400 when payment exceeds remaining debt", async () => {
     const cookieHeader = await authCookieHeader()
     const clientPublicId = await createClient(cookieHeader)
 
-    const response = await PATCH(
-      new Request(`http://localhost:3000/api/clients/${clientPublicId}`, {
-        method: "PATCH",
+    const response = await POST(
+      new Request(`http://localhost:3000/api/clients/${clientPublicId}/payments`, {
+        method: "POST",
         headers: {
           "content-type": "application/json",
           cookie: cookieHeader,
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          amount: 5000,
+          method: "CASH",
+        }),
       }),
       { params: Promise.resolve({ clientPublicId }) },
     )
@@ -144,35 +168,6 @@ describe("/api/clients/[clientPublicId]", () => {
 
     expect(response.status).toBe(400)
     expect(payload.ok).toBe(false)
-    expect(payload.error.code).toBe("invalid_request")
-  })
-
-  it("deletes client by public id", async () => {
-    const cookieHeader = await authCookieHeader()
-    const clientPublicId = await createClient(cookieHeader)
-
-    const deleteResponse = await DELETE(
-      new Request(`http://localhost:3000/api/clients/${clientPublicId}`, {
-        method: "DELETE",
-        headers: { cookie: cookieHeader },
-      }),
-      { params: Promise.resolve({ clientPublicId }) },
-    )
-
-    const deletePayload = await deleteResponse.json()
-
-    expect(deleteResponse.status).toBe(200)
-    expect(deletePayload.ok).toBe(true)
-    expect(deletePayload.data.deleted).toBe(true)
-
-    const getResponse = await GET(
-      new Request(`http://localhost:3000/api/clients/${clientPublicId}`, {
-        method: "GET",
-        headers: { cookie: cookieHeader },
-      }),
-      { params: Promise.resolve({ clientPublicId }) },
-    )
-
-    expect(getResponse.status).toBe(404)
+    expect(payload.error.code).toBe("payment_exceeds_debt")
   })
 })
