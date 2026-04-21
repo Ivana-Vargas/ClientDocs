@@ -41,10 +41,13 @@ export default async function ClientDetailPage({ params }: ClientDetailPageProps
   const client = await getClientByPublicIdFromDb(clientPublicId)
   const categories = await listDocumentCategoriesFromDb()
   const documents = (await listCurrentClientDocumentsFromDb(clientPublicId)) ?? []
-  const documentCountByCategory = documents.reduce<Record<string, number>>((accumulator, document) => {
-    accumulator[document.categoryPublicId] = (accumulator[document.categoryPublicId] ?? 0) + 1
-    return accumulator
-  }, {})
+  const typedDocuments = documents as Array<{ categoryPublicId: string }>
+  const documentCountByCategory: Record<string, number> = {}
+
+  for (const document of typedDocuments) {
+    documentCountByCategory[document.categoryPublicId] =
+      (documentCountByCategory[document.categoryPublicId] ?? 0) + 1
+  }
   const paymentsResult = await listPaymentsByClientPublicIdFromDb(clientPublicId)
   const payments = paymentsResult?.payments ?? []
   const totalPaidInCents = paymentsResult?.totalPaidInCents ?? 0
