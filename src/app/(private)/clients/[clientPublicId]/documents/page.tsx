@@ -30,22 +30,33 @@ export default async function ClientDocumentsPage({ params }: ClientDocumentsPag
 
   const categories = await listDocumentCategoriesFromDb()
   const documents = (await listCurrentClientDocumentsFromDb(clientPublicId)) ?? []
+  const workspaceCategories = categories.map((category: { publicId: string; name: string }) => ({
+    publicId: category.publicId,
+    name: category.name,
+  }))
+  const workspaceDocuments = documents.map(
+    (document: {
+      publicId: string
+      categoryPublicId: string
+      originalFileName: string
+      fileSizeBytes: number
+      version: number
+      uploadedAt: string
+    }) => ({
+      publicId: document.publicId,
+      categoryPublicId: document.categoryPublicId,
+      originalFileName: document.originalFileName,
+      fileSizeBytes: document.fileSizeBytes,
+      version: document.version,
+      uploadedAt: document.uploadedAt,
+    }),
+  )
 
   return (
     <ClientDocumentsWorkspace
       clientPublicId={clientPublicId}
-      categories={categories.map((category) => ({
-        publicId: category.publicId,
-        name: category.name,
-      }))}
-      initialDocuments={documents.map((document) => ({
-        publicId: document.publicId,
-        categoryPublicId: document.categoryPublicId,
-        originalFileName: document.originalFileName,
-        fileSizeBytes: document.fileSizeBytes,
-        version: document.version,
-        uploadedAt: document.uploadedAt,
-      }))}
+      categories={workspaceCategories}
+      initialDocuments={workspaceDocuments}
       locale={locale}
       labels={{
         title: dictionary.documents.workspaceTitle,
