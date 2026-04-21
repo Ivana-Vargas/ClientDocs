@@ -23,6 +23,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1033.0",
     "@prisma/client": "^6.16.3",
     "bcryptjs": "^3.0.3",
     "jsonwebtoken": "^9.0.3",

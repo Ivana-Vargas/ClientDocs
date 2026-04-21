@@ -1,7 +1,7 @@
 import crypto from "node:crypto"
 
 import { prismaClient } from "@database/db-client/prisma-client"
-import { deleteLocalStoredPdf, savePdfToLocalStorage } from "@server/shared/storage/document-storage"
+import { deleteStoredPdf, savePdfToConfiguredStorage } from "@server/shared/storage/document-storage"
 
 type DocumentCategoryRecord = {
   id: string
@@ -287,7 +287,7 @@ export async function uploadClientDocumentFromDb(input: UploadClientDocumentInpu
     return { status: "category_not_found" }
   }
 
-  const storageKey = savePdfToLocalStorage({
+  const storedFile = await savePdfToConfiguredStorage({
     clientPublicId: client.publicId,
     categorySlug: category.slug,
     originalFileName: input.originalFileName,
@@ -313,8 +313,8 @@ export async function uploadClientDocumentFromDb(input: UploadClientDocumentInpu
         clientId: client.id,
         categoryId: category.id,
         originalFileName: input.originalFileName,
-        storageProvider: "LOCAL",
-        storageKey,
+        storageProvider: storedFile.storageProvider,
+        storageKey: storedFile.storageKey,
         mimeType: input.mimeType,
         fileSizeBytes: input.fileSizeBytes,
         checksumSha256,
@@ -402,9 +402,7 @@ export async function deleteCurrentClientDocumentByPublicIdFromDb(input: {
     where: { id: document.id },
   })
 
-  if (document.storageProvider === "LOCAL") {
-    deleteLocalStoredPdf(document.storageKey)
-  }
+  await deleteStoredPdf(document.storageProvider, document.storageKey)
 
   return { status: "deleted" }
 }

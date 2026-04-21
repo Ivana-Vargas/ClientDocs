@@ -1,8 +1,7 @@
-import fs from "node:fs"
-import { Readable } from "node:stream"
+import { S3ServiceException } from "@aws-sdk/client-s3"
 
 import { getCurrentClientDocumentFileAccessFromDb } from "@server/features/documents/application/documents-service"
-import { readLocalStoredPdf } from "@server/shared/storage/document-storage"
+import { readStoredPdf } from "@server/shared/storage/document-storage"
 import { errorResponse } from "@server/shared/errors/api-response"
 import { AppError } from "@server/shared/errors/app-error"
 import { HTTP_STATUS } from "@server/shared/errors/http-status"
@@ -17,21 +16,28 @@ type RouteContext = {
 
 export const runtime = "nodejs"
 
-function parseRangeHeader(rangeHeader: string, fileSize: number) {
-  const match = /bytes=(\d*)-(\d*)/.exec(rangeHeader)
-
-  if (!match) {
-    return null
+function isInvalidRangeError(error: unknown) {
+  if (error instanceof S3ServiceException && error.name === "InvalidRange") {
+    return true
   }
 
-  const start = match[1] ? Number(match[1]) : 0
-  const end = match[2] ? Number(match[2]) : fileSize - 1
-
-  if (!Number.isFinite(start) || !Number.isFinite(end) || start > end || start < 0 || end >= fileSize) {
-    return null
+  if (error instanceof Error && error.message === "invalid range header") {
+    return true
   }
 
-  return { start, end }
+  return false
+}
+
+function isMissingStoredFileError(error: unknown) {
+  if (error instanceof S3ServiceException && error.name === "NoSuchKey") {
+    return true
+  }
+
+  if (error instanceof Error && (error as { code?: string }).code === "ENOENT") {
+    return true
+  }
+
+  return false
 }
 
 export async function GET(request: Request, context: RouteContext) {
@@ -49,60 +55,44 @@ export async function GET(request: Request, context: RouteContext) {
       })
     }
 
-    if (document.storageProvider !== "LOCAL") {
-      throw new AppError({
-        code: "storage_provider_not_supported",
-        status: HTTP_STATUS.badRequest,
-        message: "unsupported storage provider",
+    const requestedRange = request.headers.get("range")
+
+    try {
+      const storedFile = await readStoredPdf(document.storageProvider, document.storageKey, requestedRange)
+
+      return new Response(storedFile.body, {
+        status: storedFile.status,
+        headers: {
+          "content-type": document.mimeType,
+          "content-length": String(storedFile.contentLength),
+          "accept-ranges": "bytes",
+          "content-disposition": `inline; filename="${document.originalFileName}"`,
+          "cache-control": "private, max-age=300",
+          ...(storedFile.contentRange ? { "content-range": storedFile.contentRange } : {}),
+        },
       })
-    }
+    } catch (error) {
+      if (isInvalidRangeError(error)) {
+        const storedFile = await readStoredPdf(document.storageProvider, document.storageKey, null)
 
-    const localFile = readLocalStoredPdf(document.storageKey)
-    const stats = localFile.stat()
-    const rangeHeader = request.headers.get("range")
-
-    if (rangeHeader) {
-      const parsedRange = parseRangeHeader(rangeHeader, stats.size)
-
-      if (!parsedRange) {
         return new Response(null, {
           status: 416,
           headers: {
-            "content-range": `bytes */${stats.size}`,
+            "content-range": `bytes */${storedFile.totalSize}`,
           },
         })
       }
 
-      const stream = fs.createReadStream(localFile.absolutePath, {
-        start: parsedRange.start,
-        end: parsedRange.end,
-      })
+      if (isMissingStoredFileError(error)) {
+        throw new AppError({
+          code: "document_not_found",
+          status: HTTP_STATUS.notFound,
+          message: "document file not found",
+        })
+      }
 
-      return new Response(Readable.toWeb(stream) as ReadableStream, {
-        status: 206,
-        headers: {
-          "content-type": document.mimeType,
-          "content-length": String(parsedRange.end - parsedRange.start + 1),
-          "content-range": `bytes ${parsedRange.start}-${parsedRange.end}/${stats.size}`,
-          "accept-ranges": "bytes",
-          "content-disposition": `inline; filename=\"${document.originalFileName}\"`,
-          "cache-control": "private, max-age=300",
-        },
-      })
+      throw error
     }
-
-    const stream = localFile.createReadStream()
-
-    return new Response(Readable.toWeb(stream) as ReadableStream, {
-      status: HTTP_STATUS.ok,
-      headers: {
-        "content-type": document.mimeType,
-        "content-length": String(stats.size),
-        "accept-ranges": "bytes",
-        "content-disposition": `inline; filename=\"${document.originalFileName}\"`,
-        "cache-control": "private, max-age=300",
-      },
-    })
   } catch (error) {
     return errorResponse(error)
   }
