@@ -7,7 +7,10 @@ import { redirect } from "next/navigation"
 import { LanguageSwitcher } from "@app/shared/ui/language-switcher"
 import { LogoutButton } from "@app/shared/ui/logout-button"
 import { getUserFromAccessToken } from "@server/features/auth/application/auth-db-service"
-import { getAccessTokenCookieName } from "@server/features/auth/presentation/auth-cookies"
+import {
+  getAccessTokenCookieName,
+  getRefreshTokenCookieName,
+} from "@server/features/auth/presentation/auth-cookies"
 import { getDictionary } from "@shared/localization/dictionary"
 import { LOCALE_COOKIE_NAME, resolveLocale } from "@shared/localization/config"
 
@@ -20,14 +23,23 @@ export default async function PrivateLayout({ children }: PrivateLayoutProps) {
   const locale = resolveLocale(cookieStore.get(LOCALE_COOKIE_NAME)?.value)
   const dictionary = getDictionary(locale)
   const accessToken = cookieStore.get(getAccessTokenCookieName())?.value
+  const refreshToken = cookieStore.get(getRefreshTokenCookieName())?.value
 
   if (!accessToken) {
+    if (refreshToken) {
+      redirect("/api/auth/restore?next=/dashboard")
+    }
+
     redirect("/login")
   }
 
   const user = getUserFromAccessToken(accessToken)
 
   if (!user) {
+    if (refreshToken) {
+      redirect("/api/auth/restore?next=/dashboard")
+    }
+
     redirect("/login")
   }
 
